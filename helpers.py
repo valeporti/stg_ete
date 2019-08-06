@@ -34,3 +34,9 @@ class DataFrameSelector(BaseEstimator, TransformerMixin):
         return self
     def transform(self, X):
         return X[self.attribute_names].values
+
+def getRepresentativeness(model, X, _Y):
+    r = []
+    for i, (mean, cov) in enumerate(zip(model.means_, model.covariances_)):
+        r.append({ 'group': i, 'qty': len(X[_Y == i, 0]), 'representativeness': len(X[_Y == i, 0])/len(X) })
+    return r

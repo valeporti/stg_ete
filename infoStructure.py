@@ -70,9 +70,11 @@ def addPatientFeatureInfo(patient_dir, feature):
             except KeyboardInterrupt:
                 raise # get out
             except TypeError as e :
-                print("TypeError error: ".format(e))
+                print("TypeError error:")
+                print(e)
             except ValueError as e : 
-                print("Value error: ".format(e))
+                print("Value error: ")
+                print(e)
             except:
                 print("Unexpected error:", sys.exc_info()[0])
             for i in range(n):
