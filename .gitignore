@@ -2,3 +2,4 @@
 Brest_Samples/*
 .ipynb_checkpoints/*
 output/*
+__pycache__/*

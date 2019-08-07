@@ -103,3 +103,21 @@ def plotMSh(X, ms, n_clusters_, cluster_centers, labels):
     plt.show()
     plt.clf()
     plt.close()
+
+def plotBICScores(bic, cv_types, color_iter, n_components_range):
+    bars = []
+    plt.figure(figsize=(8, 6))
+    spl = plt.subplot(2, 1, 1)
+    for i, (cv_type, color) in enumerate(zip(cv_types, color_iter)):
+        xpos = np.array(n_components_range) + .2 * (i - 2)
+        bars.append(plt.bar(xpos, bic[i * len(n_components_range):
+                                      (i + 1) * len(n_components_range)],
+                            width=.2, color=color))
+    plt.xticks(n_components_range)
+    plt.ylim([bic.min() * 1.01 - .01 * bic.max(), bic.max()])
+    plt.title('BIC score per model')
+    xpos = np.mod(bic.argmin(), len(n_components_range)) + .65 +\
+        .2 * np.floor(bic.argmin() / len(n_components_range))
+    plt.text(xpos, bic.min() * 0.97 + .03 * bic.max(), '*', fontsize=14)
+    spl.set_xlabel('Number of components')
+    spl.legend([b[0] for b in bars], cv_types)
