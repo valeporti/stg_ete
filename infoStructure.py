@@ -60,6 +60,39 @@ def getPatientVars(patient_dir):
 
 # -------
 
+def addPatientFeatureInfoV2(patient_dir, features, feat_dict):
+    for file_path in os.listdir(patient_dir):
+        if file_path.endswith(".mat"):
+            n = 0
+            try:
+                vo, n = getPatientVars(patient_dir + '/' + file_path)
+            except KeyboardInterrupt:
+                raise # get out
+            except TypeError as e :
+                print("TypeError error:")
+                print(e)
+            except ValueError as e : 
+                print("Value error: ")
+                print(e)
+            except:
+                print("Unexpected error:", sys.exc_info()[0])
+            for f, feature in enumerate(features):
+                if feature not in feat_dict : feat_dict[feature] = []
+                for i in range(n):
+                    new = hp.flattenNPList(getFeatureInfo(vo, i, feature))
+                    feat_dict[feature] = hp.addTwoNPLists(feat_dict[feature], new)       
+
+def addAllPatientsInfoV2(mdir, features, total = None):
+    feat_dict = {}
+    cnt = 0
+    for dir_path in os.listdir(mdir):
+        if isStartStringMatched(dir_path, 'RS'):
+            print(f'Working on {dir_path}')
+            addPatientFeatureInfoV2(mdir + dir_path, features, feat_dict)
+        cnt += 1
+        if cnt >= total and total is not None: break
+    return feat_dict
+
 def addPatientFeatureInfo(patient_dir, feature):
     info = []
     for file_path in os.listdir(patient_dir):
@@ -83,12 +116,13 @@ def addPatientFeatureInfo(patient_dir, feature):
     return info
 
 def addAllPatientsInfo(mdir, feature, total = None):
-    info = None
+    info = []
     cnt = 0
     for dir_path in os.listdir(mdir):
         if isStartStringMatched(dir_path, 'RS'):
             print(f'Working on {feature} - {dir_path}')
-            info = addPatientFeatureInfo(mdir + dir_path, feature)
+            new = addPatientFeatureInfo(mdir + dir_path, feature)
+            info = hp.addTwoNPLists(info, new)
         cnt += 1
         if cnt >= total and total is not None: break
     return info
