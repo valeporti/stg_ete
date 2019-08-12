@@ -35,3 +35,19 @@ def getBestGMMUsingBIC(X, n_components_range):
                 lowest_bic = bic[-1]
                 best_gmm = gmm
     return best_gmm, bic, cv_types
+
+def getBestGMMUsingAIC(X, n_components_range):
+    lowest_aic = np.infty
+    aic = []
+    cv_types = ['spherical', 'tied', 'diag', 'full']
+    for cv_type in cv_types:
+        for n_components in n_components_range:
+            # Fit a Gaussian mixture with EM
+            gmm = GaussianMixture(n_components=n_components,
+                                    covariance_type=cv_type)
+            gmm.fit(X)
+            aic.append(gmm.aic(X))
+            if aic[-1] < lowest_aic:
+                lowest_aic = aic[-1]
+                best_gmm = gmm
+    return best_gmm, aic, cv_types
