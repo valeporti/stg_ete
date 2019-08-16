@@ -68,6 +68,7 @@ def printThreeKMaeans(X, Y_, titles):
     ax[2].set_xlabel(titles[0])
     ax[2].set_ylabel(titles[2])
     plt.show()
+    plt.clf()
     plt.close()
 
 def plotGM(X, Y, means, covariances, ax, col1, col2, color_iter):
@@ -121,3 +122,6 @@ def plotBICScores(bic, cv_types, color_iter, n_components_range):
     plt.text(xpos, bic.min() * 0.97 + .03 * bic.max(), '*', fontsize=14)
     spl.set_xlabel('Number of components')
     spl.legend([b[0] for b in bars], cv_types)
+    plt.show()
+    plt.clf()
+    plt.close()
