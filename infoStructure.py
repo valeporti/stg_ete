@@ -19,7 +19,7 @@ def getVoie(patient):
 # voie will have a shape of (1, n), where n # of info inside range(0,n-1)
 def getVoieInfo(voie, n):
     voie_n = voie[0,n]
-    if (voie_n.shape[1] == 0): return []
+    if (voie_n.shape[1] == 0): return np.asarray([], dtype=np.float32)
     return voie_n[0, 0]
 
 def getLabels(voie, n):
@@ -31,7 +31,7 @@ def isStartStringMatched(s, m):
 
 def getFeatureInfo(vo, n, f):
     fi = getVoieInfo(vo, n)
-    return fi[f] if len(fi) != 0 else np.asarray([[]])
+    return fi[f] if len(fi) != 0 else np.asarray([], dtype=np.float32)
 
 # -------
 
@@ -77,19 +77,34 @@ def addPatientFeatureInfoV2(patient_dir, features, feat_dict):
             except:
                 print("Unexpected error:", sys.exc_info()[0])
             for f, feature in enumerate(features):
-                if feature not in feat_dict : feat_dict[feature] = []
+                if feature not in feat_dict : feat_dict[feature] = np.asarray([], dtype=np.float32)
                 for i in range(n):
                     new = hp.flattenNPList(getFeatureInfo(vo, i, feature))
-                    feat_dict[feature] = hp.addTwoNPLists(feat_dict[feature], new)       
+                    feat_dict[feature] = hp.addTwoNPLists(feat_dict[feature], new) 
 
 def addAllPatientsInfoV2(mdir, features, total = None):
     feat_dict = {}
     cnt = 0
     for dir_path in os.listdir(mdir):
-        if isStartStringMatched(dir_path, 'RS'):
+        if isStartStringMatched(dir_path, 'RS'):    
             print(f'Working on {dir_path}')
             addPatientFeatureInfoV2(mdir + dir_path, features, feat_dict)
+            #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
         cnt += 1
+        if cnt >= total and total is not None: break
+    return feat_dict
+
+def addAllPatientsInfoV3(mdir, features, total = None, start = 0):
+    feat_dict = {}
+    cnt = 0
+    stt = 0
+    for dir_path in os.listdir(mdir):
+        if isStartStringMatched(dir_path, 'RS') and stt > start:
+            print(f'Working on {dir_path}')
+            addPatientFeatureInfoV2(mdir + dir_path, features, feat_dict)
+            print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
+        if stt > start: cnt += 1
+        stt += 1
         if cnt >= total and total is not None: break
     return feat_dict
 
