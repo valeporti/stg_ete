@@ -8,34 +8,52 @@ import re
 import gc
 import helpers as hp
 import sys
+import random
 
-# HELPERS
+### Get Patient Data inside MatFile CHU-like data (HDF5)
+# In the data passed, the structure in a mat file needed to access "patient" as a first step
 def getPatientStruct(mat_file):
     return mat_file['patient']
 
+### Get Voie Data inside Patient CHU-like data (HDF5)
+# Data should be reached accessing the "voie" in first row/col in patient matrix
 def getVoie(patient):
     return patient[0, 0]['voie']
 
+### Get info inside "Voie"
 # voie will have a shape of (1, n), where n # of info inside range(0,n-1)
+# voie 
+# n -- number of voie
 def getVoieInfo(voie, n):
     voie_n = voie[0,n]
-    if (voie_n.shape[1] == 0): return np.asarray([], dtype=np.float32)
+    if (voie_n.shape[1] == 0): return np.asarray([], dtype=np.float32) # data come in float32 format, maintain it
     return voie_n[0, 0]
 
+### Get Labels of Data
+# In order to organize data, and ask for the correct data to the structure, we need the labels
+# voie 
+# n - number indicating the voie number
 def getLabels(voie, n):
     voie_n = voie[0,n]
     return (voie_n.dtype).names
 
+### Check if "s" string is right after "m" string
+# Used to avoid non desired folders
+#
 def isStartStringMatched(s, m):
     return re.match(m + '.+', s)
 
+### Get data corresponding to the voie ("vo"), number ("n") passed, and feature/label ("f")
+# vo -- voie
+# n -- number of voie
+# f -- feature/label name  (string)
 def getFeatureInfo(vo, n, f):
     fi = getVoieInfo(vo, n)
-    return fi[f] if len(fi) != 0 else np.asarray([], dtype=np.float32)
+    return fi[f] if len(fi) != 0 else np.asarray([], dtype=np.float32) # data come in float32 format, maintain it
 
 # -------
 
-# general info to grab for further study
+### General info to grab for further study
 # return info: labels
 def getFirstOneInfo(file_path):
     mat = sio.loadmat(file_path)
@@ -47,7 +65,7 @@ def getFirstOneInfo(file_path):
     gc.collect()
     return labels
 
-# Accumulate one patient info
+### Accumulate one patient info
 # acumulate from same file and different structs
 def getPatientVars(patient_dir):
     mat = sio.loadmat(patient_dir)
@@ -59,6 +77,7 @@ def getPatientVars(patient_dir):
     return vo, n
 
 # -------
+
 
 def addPatientFeatureInfoV2(patient_dir, features, feat_dict):
     for file_path in os.listdir(patient_dir):
@@ -106,6 +125,19 @@ def addAllPatientsInfoV3(mdir, features, total = None, start = 0):
         if stt > start: cnt += 1
         stt += 1
         if cnt >= total and total is not None: break
+    return feat_dict
+
+def addAllPatientsInfoV4(mdir, features, total = 10):
+    feat_dict = {}
+    cnt = 0
+    stt = 0
+    directories = [ v for i, v in enumerate(os.listdir(mdir)) if isStartStringMatched(v, 'RS') ]
+    suffled_d = [i for i in range(len(directories))]
+    random.shuffle(suffled_d)
+    for i in range(total):
+        print(f'Working on { directories[ suffled_d[i] ] } #{ i }')
+        addPatientFeatureInfoV2(mdir + directories[ suffled_d[i] ], features, feat_dict)
+        #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
     return feat_dict
 
 def addPatientFeatureInfo(patient_dir, feature):
