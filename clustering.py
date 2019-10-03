@@ -140,7 +140,7 @@ def removeOuliersFromMeanShiftV2(cols, X, idx, threshold, cluster_centers, bandw
     return np.delete(X, to_remove, 0), np.delete(idx, to_remove, 0)
 
 
-### RemoveOutliers Verision 2, motivated in order to handle the
+### RemoveOutliers Verision 2, motivated in order to add a more "generic" way of removing the oultiers
 def removeOutliersV2(df, indexes, threshold = 2, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000):
     initial_shape = df.shape
     X = df.to_numpy().astype(np.float64)
@@ -167,6 +167,35 @@ def removeOutliersV2(df, indexes, threshold = 2, threshold_hard = 0.01, cols_har
     del toMaintain_CorrKLD, toMaintain_FAmpKLD, toMaintain, zCorrKLD, zFAmpKLD, df_2, df_h, X, ms, n_clusters_, cluster_centers, labels
     gc.collect()
     return df_nout, indexes
+
+### RemoveOuliers V3, since one of the two "hard to remove" features is not well removed with the "more generic" way, a hard removal is taken into account
+def removeOutliersV3(df, indexes, threshold = 2, threshold_hard = 0.01, cols_hard = [0], samples_bandwidth = 50000, UFAMP_limit = 2e+5):
+    initial_shape = df.shape
+    X = df.to_numpy().astype(np.float64)
+    bandwidth = estimate_bandwidth(X, n_samples=samples_bandwidth, quantile=0.5)
+    print(f'bandwidth: { bandwidth }')
+    ms, n_clusters_, cluster_centers, labels = meanClustering(X, bandwidth)
+    X, indexes = removeOuliersFromMeanShiftV2(cols_hard, X, indexes, threshold_hard, cluster_centers, bandwidth)
+    print(f'shapes: { indexes.shape }, {X.shape}')
+    df_h = hp.convertDictInDF(hp.putDataInDict(
+        [X[:,0], X[:,1], X[:,2], X[:,3]],
+        ['vectorRRKLD', 'vectorFAmpKLD', 'vectorUFAmpKLD', 'vectorCorrKLD']))
+    df_2 = df_h.copy()
+    zCorrKLD = np.abs(st.zscore(df_2['vectorCorrKLD']))
+    zFAmpKLD = np.abs(st.zscore(df_2['vectorFAmpKLD']))
+    toMaintain_CorrKLD = zCorrKLD <= threshold
+    toMaintain_FAmpKLD = zFAmpKLD <= threshold
+    toMaintain = np.logical_and(toMaintain_CorrKLD, toMaintain_FAmpKLD)
+    print('tomain',toMaintain)
+    indexes = indexes[toMaintain]
+    df_2 = df_2[toMaintain]
+    df_2 = df_2[(df_2['vectorUFAmpKLD'] < UFAMP_limit)]  #not removable other way 
+    df_nout = df_2.copy()
+    print(f'after hard removal (vectorUFAmpKLD && vectorRRKLD) shape : {df_2.shape} && { str( round(100 * df_2.shape[0]/initial_shape[0], 2) ) }')
+    print(f'after soft removal (vectorCorrKLD && vectorFAmpKLD) shape : {df_h.shape} && { str( round(100 * df_h.shape[0]/initial_shape[0], 2) ) }')
+    del toMaintain_CorrKLD, toMaintain_FAmpKLD, toMaintain, zCorrKLD, zFAmpKLD, df_2, df_h, X, ms, n_clusters_, cluster_centers, labels
+    gc.collect()
+    return df_nout
 
 def normalize(df):
     num_attribs = list(df)
@@ -202,6 +231,15 @@ def runOutNormPCAV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols
     titPca = [ 'pc' + str(i) for i, v in enumerate(pca.explained_variance_ratio_) ]
     Xpca, dfPca = getXandDf(pca, Xnorm, titPca)
     return df_nout, Xnorm, Xpca, dfPca, titPca, pca, std, indexes
+
+def runOutNormV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000, v3 = True, UFAMP_limit=2e+5):
+    df_nout = None
+    if v3 is True:
+        df_nout = removeOutliersV3(df_ALL, indexes, UFAMP_limit=UFAMP_limit)
+    else:
+        df_nout, indexes = removeOutliersV2(df_ALL, indexes, threshold, threshold_hard, cols_hard, samples_bandwidth)
+    Xnorm, std = normalizeV2(df_nout)
+    return df_nout, Xnorm, std, indexes
 
 def runOutNorm(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000, v2 = True):
     df_nout = None
