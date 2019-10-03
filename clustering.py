@@ -232,10 +232,10 @@ def runOutNormPCAV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols
     Xpca, dfPca = getXandDf(pca, Xnorm, titPca)
     return df_nout, Xnorm, Xpca, dfPca, titPca, pca, std, indexes
 
-def runOutNormV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000, v3 = True, UFAMP_limit=2e+5):
+def runOutNormV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000, v3 = True, UFAMP_limit=1e+6):
     df_nout = None
     if v3 is True:
-        df_nout = removeOutliersV3(df_ALL, indexes, UFAMP_limit=UFAMP_limit)
+        df_nout = removeOutliersV3(df_ALL, indexes, UFAMP_limit=UFAMP_limit, cols_hard=[0])
     else:
         df_nout, indexes = removeOutliersV2(df_ALL, indexes, threshold, threshold_hard, cols_hard, samples_bandwidth)
     Xnorm, std = normalizeV2(df_nout)
