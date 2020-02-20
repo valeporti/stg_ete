@@ -77,14 +77,13 @@ def getPatientVars(patient_dir):
     return vo, n
 
 # -------
-
-
-def addPatientFeatureInfoV2(patient_dir, features, feat_dict):
-    for file_path in os.listdir(patient_dir):
+# For each .mat file found, obtain the features
+def addPatientFeatureInfoV2(mdir, patient_dir, features, feat_dict):
+    for file_path in os.listdir(mdir + patient_dir):
         if file_path.endswith(".mat"):
-            n = 0
+            n = 0; temp_size = 0; size = 0; got_one = False
             try:
-                vo, n = getPatientVars(patient_dir + '/' + file_path)
+                vo, n = getPatientVars(mdir + patient_dir + '/' + file_path)
             except KeyboardInterrupt:
                 raise # get out
             except TypeError as e :
@@ -95,11 +94,26 @@ def addPatientFeatureInfoV2(patient_dir, features, feat_dict):
                 print(e)
             except:
                 print("Unexpected error:", sys.exc_info()[0])
+            # collect the features
             for f, feature in enumerate(features):
                 if feature not in feat_dict : feat_dict[feature] = np.asarray([], dtype=np.float32)
+                if 'voie_num' not in feat_dict : feat_dict['voie_num'] = np.asarray([], dtype=np.uint8)
                 for i in range(n):
                     new = hp.flattenNPList(getFeatureInfo(vo, i, feature))
-                    feat_dict[feature] = hp.addTwoNPLists(feat_dict[feature], new) 
+                    feat_dict[feature] = hp.addTwoNPLists(feat_dict[feature], new)
+                    temp_size += len(new)
+                    # add general voie, to add info of where to find the data
+                    if not got_one: 
+                        voie_num = np.full(new.shape, fill_value=i, dtype=np.uint8)
+                        feat_dict['voie_num'] = hp.addTwoNPLists(feat_dict['voie_num'], voie_num)
+                if not got_one: 
+                    got_one = True
+                    size += temp_size
+                    temp_size = 0
+            # add file path 
+            if 'paths' not in feat_dict : feat_dict['paths'] = np.asarray([])
+            paths = np.full((size,), fill_value=f'{ patient_dir }/{ file_path }', dtype='>U64')
+            feat_dict['paths'] = hp.addTwoNPLists(feat_dict['paths'], paths) 
 
 def addAllPatientsInfoV2(mdir, features, total = None):
     feat_dict = {}
@@ -136,7 +150,7 @@ def addAllPatientsInfoV4(mdir, features, total = 10):
     random.shuffle(suffled_d)
     for i in range(total):
         print(f'Working on { directories[ suffled_d[i] ] } #{ i }')
-        addPatientFeatureInfoV2(mdir + directories[ suffled_d[i] ], features, feat_dict)
+        addPatientFeatureInfoV2(mdir, directories[ suffled_d[i] ], features, feat_dict)
         #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
     return feat_dict
 

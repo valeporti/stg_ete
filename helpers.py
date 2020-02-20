@@ -6,6 +6,26 @@ import numpy as np
 import math
 import gc
 
+def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_titles):
+    """
+    Get some rows complete row, including its info
+    X is the matrix
+    qty is the number of rows wanted to be retrieved
+    """
+    matches = ( predicted == cluster )
+    matched_indexes = indexes[ matches ]
+    matched_X = X[ matches ]
+    info = df_info.loc[ matched_indexes ]
+    info = info.iloc[ 0 : qty ]
+    for i, title in enumerate(ordered_titles):
+        info[ title ] = X[:qty,i]
+    return info
+
+def cleanDF(df, to_drop):
+    dropped = df[to_drop]
+    new = df.drop(columns=to_drop)
+    return new, dropped
+
 ### Create a Folder
 # d -- string of path
 def createDir(d):

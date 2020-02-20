@@ -9,6 +9,22 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib as mpl
 import itertools
 
+def plotOneGMMClusterAxe(ax, X, predicted, cluster, col1, col2, color, tts):
+    ax.scatter(X[predicted == cluster, col1], X[predicted == cluster, col2], 0.8, color)
+    ax.scatter(X[predicted != cluster, col1], X[predicted != cluster, col2], 0.8, 'navy')
+    ax.set_xlabel(tts[col1])
+    ax.set_ylabel(tts[col2])
+
+def plotAll2DGMMs(X, predicted, cluster, color, tts):
+    fig, ax = plt.subplots(2, 3, figsize=(20, 10))
+    plotOneGMMClusterAxe(ax[0, 0], X, predicted, cluster, 0, 1, color, tts )
+    plotOneGMMClusterAxe(ax[0, 1], X, predicted, cluster, 0, 2, color, tts )
+    plotOneGMMClusterAxe(ax[0, 2], X, predicted, cluster, 0, 3, color, tts )
+    plotOneGMMClusterAxe(ax[1, 0], X, predicted, cluster, 1, 2, color, tts )
+    plotOneGMMClusterAxe(ax[1, 1], X, predicted, cluster, 1, 3, color, tts )
+    plotOneGMMClusterAxe(ax[1, 2], X, predicted, cluster, 2, 3, color, tts )
+    plt.show(); fig.clf(); plt.close();
+
 def plotOneGMMCluster(X, predicted, cluster, col1, col2, color, tts):
     plt.scatter(X[predicted == cluster, col1], X[predicted == cluster, col2], 0.8, color)
     plt.scatter(X[predicted != cluster, col1], X[predicted != cluster, col2], 0.8, 'navy')
@@ -16,8 +32,8 @@ def plotOneGMMCluster(X, predicted, cluster, col1, col2, color, tts):
     plt.ylabel(tts[col2])
 
 def plotOneGMMCluster3D(ax, X, predicted, cluster, col1, col2, col3, color, tts):
-    ax.scatter(xs=X[predicted == cluster, col1], ys=X[predicted == cluster, col2], zs=X[predicted == cluster, col3], s=0.8, c=color)
     ax.scatter(xs=X[predicted != cluster, col1], ys=X[predicted != cluster, col2], zs=X[predicted != cluster, col3], s=0.8, c='navy')
+    ax.scatter(xs=X[predicted == cluster, col1], ys=X[predicted == cluster, col2], zs=X[predicted == cluster, col3], s=0.8, c=color)
     ax.set_xlabel(tts[col1])
     ax.set_ylabel(tts[col2])
     ax.set_zlabel(tts[col3])

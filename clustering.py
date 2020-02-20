@@ -158,7 +158,7 @@ def removeOutliersV2(df, indexes, threshold = 2, threshold_hard = 0.01, cols_har
     toMaintain_CorrKLD = zCorrKLD <= threshold
     toMaintain_FAmpKLD = zFAmpKLD <= threshold
     toMaintain = np.logical_and(toMaintain_CorrKLD, toMaintain_FAmpKLD)
-    print('tomain',toMaintain)
+    print('to_maintain_indexes ',toMaintain)
     indexes = indexes[toMaintain]
     df_2 = df_2[toMaintain]
     df_nout = df_2.copy()
@@ -186,16 +186,18 @@ def removeOutliersV3(df, indexes, threshold = 2, threshold_hard = 0.01, cols_har
     toMaintain_CorrKLD = zCorrKLD <= threshold
     toMaintain_FAmpKLD = zFAmpKLD <= threshold
     toMaintain = np.logical_and(toMaintain_CorrKLD, toMaintain_FAmpKLD)
-    print('tomain',toMaintain)
+    print('to_maintain_indexes ',toMaintain)
     indexes = indexes[toMaintain]
     df_2 = df_2[toMaintain]
-    df_2 = df_2[(df_2['vectorUFAmpKLD'] < UFAMP_limit)]  #not removable other way 
+    ufamp_maintain = (df_2['vectorUFAmpKLD'] < UFAMP_limit)
+    df_2 = df_2[ufamp_maintain]  #not removable other way 
+    indexes = indexes[ufamp_maintain]
     df_nout = df_2.copy()
     print(f'after hard removal (vectorUFAmpKLD && vectorRRKLD) shape : {df_2.shape} && { str( round(100 * df_2.shape[0]/initial_shape[0], 2) ) }')
     print(f'after soft removal (vectorCorrKLD && vectorFAmpKLD) shape : {df_h.shape} && { str( round(100 * df_h.shape[0]/initial_shape[0], 2) ) }')
     del toMaintain_CorrKLD, toMaintain_FAmpKLD, toMaintain, zCorrKLD, zFAmpKLD, df_2, df_h, X, ms, n_clusters_, cluster_centers, labels
     gc.collect()
-    return df_nout
+    return df_nout, indexes
 
 def normalize(df):
     num_attribs = list(df)
@@ -235,7 +237,7 @@ def runOutNormPCAV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols
 def runOutNormV2(df_ALL, indexes, threshold = 20, threshold_hard = 0.01, cols_hard = [0, 2], samples_bandwidth = 50000, v3 = True, UFAMP_limit=1e+6):
     df_nout = None
     if v3 is True:
-        df_nout = removeOutliersV3(df_ALL, indexes, UFAMP_limit=UFAMP_limit, cols_hard=[0])
+        df_nout, indexes = removeOutliersV3(df_ALL, indexes, UFAMP_limit=UFAMP_limit, cols_hard=[0])
     else:
         df_nout, indexes = removeOutliersV2(df_ALL, indexes, threshold, threshold_hard, cols_hard, samples_bandwidth)
     Xnorm, std = normalizeV2(df_nout)
