@@ -5,6 +5,9 @@ import pandas as pd
 import numpy as np
 import math
 import gc
+import os
+import re
+import shutil
 
 def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_titles):
     """
@@ -20,6 +23,22 @@ def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_tit
     for i, title in enumerate(ordered_titles):
         info[ title ] = X[:qty,i]
     return info
+
+def fileAtPathExists(path):
+    return os.path.isfile(path)
+
+def copyAndRename(original, new):
+    shutil.copyfile(original, new)
+
+def readFileToPandas(file):
+    if re.match(r'.+\.feather', file):
+        print('reading feather')
+        return pd.read_feather(file)
+    elif re.match(r'.+\.h5', file):
+        print('reading h5')
+        return pd.read_hdf(file)
+    else:
+        raise TypeError('Not supported file type')
 
 def cleanDF(df, to_drop):
     dropped = df[to_drop]

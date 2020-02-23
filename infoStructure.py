@@ -121,7 +121,7 @@ def addAllPatientsInfoV2(mdir, features, total = None):
     for dir_path in os.listdir(mdir):
         if isStartStringMatched(dir_path, 'RS'):    
             print(f'Working on {dir_path}')
-            addPatientFeatureInfoV2(mdir + dir_path, features, feat_dict)
+            addPatientFeatureInfoV2(mdir, dir_path, features, feat_dict)
             #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
         cnt += 1
         if cnt >= total and total is not None: break
@@ -134,24 +134,52 @@ def addAllPatientsInfoV3(mdir, features, total = None, start = 0):
     for dir_path in os.listdir(mdir):
         if isStartStringMatched(dir_path, 'RS') and stt > start:
             print(f'Working on {dir_path}')
-            addPatientFeatureInfoV2(mdir + dir_path, features, feat_dict)
+            addPatientFeatureInfoV2(mdir, dir_path, features, feat_dict)
             print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
         if stt > start: cnt += 1
         stt += 1
         if cnt >= total and total is not None: break
     return feat_dict
 
-def addAllPatientsInfoV4(mdir, features, total = 10):
-    feat_dict = {}
-    cnt = 0
-    stt = 0
+def saveToFeather(data, columns, name):
+    df_ALL = hp.convertDictInDF(data)
+    df_ALL.to_feather(name)
+    del df_ALL; gc.collect()
+
+def saveToHDF(data, columns, name):
+    df_ALL = hp.convertDictInDF(data)
+    df_ALL.to_hdf(name, key='df', mode='a', append=True, format='table', data_columns=True)
+    del df_ALL; gc.collect()
+
+def addAllPatientsInfoV4(mdir, features, total = [10], dir_to_save = None, to_hdf = False):
+    """
+    add all patients info to a variable
+    (directory, features = titles in files, total is Array with desired quantities to save, dir_to_save is the directory to be saved if None, it won't be saved) 
+    """
+    feat_dict = {}; counter = 0
     directories = [ v for i, v in enumerate(os.listdir(mdir)) if isStartStringMatched(v, 'RS') ]
     suffled_d = [i for i in range(len(directories))]
     random.shuffle(suffled_d)
-    for i in range(total):
-        print(f'Working on { directories[ suffled_d[i] ] } #{ i }')
-        addPatientFeatureInfoV2(mdir, directories[ suffled_d[i] ], features, feat_dict)
-        #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
+    for t, sub_total in enumerate(total): 
+        copied = False        
+        for i in range(counter, sub_total):
+            if len(directories) <= i: break
+            print(f'Working on { directories[ suffled_d[i] ] } #{ i }')
+            addPatientFeatureInfoV2(mdir, directories[ suffled_d[i] ], features, feat_dict)
+            #print(feat_dict[features[0]].dtype, feat_dict[features[1]].dtype, feat_dict[features[2]].dtype, feat_dict[features[3]].dtype)
+            if dir_to_save and to_hdf: 
+                this_tot = total[ t-1 ] if t > 0 else sub_total
+                this_file = f'{ dir_to_save }{ str(this_tot) }_f32.h5'
+                new_file = f'{ dir_to_save }{ str(sub_total) }_f32.h5'
+                if hp.fileAtPathExists(this_file) and t == 0: os.remove(this_file)
+                if hp.fileAtPathExists(this_file) and t > 0 and not copied:
+                    hp.copyAndRename(this_file, new_file) # if file existant, it will remove it
+                    copied = True
+                saveToHDF(feat_dict, features + ['voie_num', 'paths'], f'{ dir_to_save }{ str(sub_total) }_f32.h5')
+                feat_dict = {}
+                #raise NotImplementedError('not supported method yet (HDF5)')
+        if dir_to_save and not to_hdf: saveToFeather(feat_dict, features + ['voie_num', 'paths'], f'{ dir_to_save }{ str(sub_total) }_f32.feather')
+        counter = sub_total
     return feat_dict
 
 def addPatientFeatureInfo(patient_dir, feature):
