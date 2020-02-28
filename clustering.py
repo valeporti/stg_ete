@@ -122,7 +122,7 @@ def getBeforeCenter(main, n):
 # cluster_centers - obtained from MeanShift calculation
 # bandwidth - estimated to do the MeanShift calculation
 def removeOuliersFromMeanShiftV2(cols, X, idx, threshold, cluster_centers, bandwidth):
-    print(f'shapes: { idx.shape }, {X.shape}')    
+    # print(f'shapes: { idx.shape }, {X.shape}')    
     total = X.shape[0]
     indexes = []
     for col in cols:
@@ -131,10 +131,11 @@ def removeOuliersFromMeanShiftV2(cols, X, idx, threshold, cluster_centers, bandw
         importance = [ getImportance(X[:, col], c, bandwidth) for c in centers ]
         z = np.array([ v / total for i, v in enumerate(importance) ])
         to_remove_centers = centers[(z <= threshold)] # they are always the last centers
-        before_first_center = getBeforeCenter(centers, to_remove_centers[0])
-        to_remove_centers = np.insert(to_remove_centers, 0, before_first_center) 
-        extremes = [ to_remove_centers[0], to_remove_centers[-1] + bandwidth ]
-        removing_indexes = np.where(np.logical_and(extremes[0]<=X[:, col], X[:, col]<=extremes[1]))[0]
+        # print(centers, to_remove_centers)
+        before_first_center = getBeforeCenter(centers, to_remove_centers[0]) if len(to_remove_centers) > 0 else None
+        to_remove_centers = np.insert(to_remove_centers, 0, before_first_center if before_first_center else []) 
+        extremes = [ to_remove_centers[0], to_remove_centers[-1] + bandwidth ] if len(to_remove_centers) > 0 else []
+        removing_indexes = np.where(np.logical_and(extremes[0]<=X[:, col], X[:, col]<=extremes[1]))[0] if len(extremes) > 0 else []
         indexes = np.concatenate((indexes, removing_indexes))
     to_remove = np.unique(indexes).astype(np.int32)
     return np.delete(X, to_remove, 0), np.delete(idx, to_remove, 0)

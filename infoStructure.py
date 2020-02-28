@@ -146,8 +146,10 @@ def saveToFeather(data, columns, name):
     df_ALL.to_feather(name)
     del df_ALL; gc.collect()
 
-def saveToHDF(data, columns, name):
-    df_ALL = hp.convertDictInDF(data)
+def saveToHDF(data, columns, name, index):
+    #print(index)
+    #print(np.arange(index[0], index[1]))
+    df_ALL = pd.DataFrame(data, index=np.arange(index[0], index[1]))
     df_ALL.to_hdf(name, key='df', mode='a', append=True, format='table', data_columns=True)
     del df_ALL; gc.collect()
 
@@ -156,7 +158,7 @@ def addAllPatientsInfoV4(mdir, features, total = [10], dir_to_save = None, to_hd
     add all patients info to a variable
     (directory, features = titles in files, total is Array with desired quantities to save, dir_to_save is the directory to be saved if None, it won't be saved) 
     """
-    feat_dict = {}; counter = 0
+    feat_dict = {}; counter = 0; elements = 0; prev_elements = 0
     directories = [ v for i, v in enumerate(os.listdir(mdir)) if isStartStringMatched(v, 'RS') ]
     suffled_d = [i for i in range(len(directories))]
     random.shuffle(suffled_d)
@@ -171,11 +173,13 @@ def addAllPatientsInfoV4(mdir, features, total = [10], dir_to_save = None, to_hd
                 this_tot = total[ t-1 ] if t > 0 else sub_total
                 this_file = f'{ dir_to_save }{ str(this_tot) }_f32.h5'
                 new_file = f'{ dir_to_save }{ str(sub_total) }_f32.h5'
-                if hp.fileAtPathExists(this_file) and t == 0: os.remove(this_file)
+                if hp.fileAtPathExists(this_file) and t == 0 and i == 0: os.remove(this_file)
                 if hp.fileAtPathExists(this_file) and t > 0 and not copied:
                     hp.copyAndRename(this_file, new_file) # if file existant, it will remove it
                     copied = True
-                saveToHDF(feat_dict, features + ['voie_num', 'paths'], f'{ dir_to_save }{ str(sub_total) }_f32.h5')
+                elements += len( feat_dict[features[0] ] )
+                saveToHDF(feat_dict, features + ['voie_num', 'paths'], f'{ dir_to_save }{ str(sub_total) }_f32.h5', [ prev_elements, elements ])
+                prev_elements = elements
                 feat_dict = {}
                 #raise NotImplementedError('not supported method yet (HDF5)')
         if dir_to_save and not to_hdf: saveToFeather(feat_dict, features + ['voie_num', 'paths'], f'{ dir_to_save }{ str(sub_total) }_f32.feather')
