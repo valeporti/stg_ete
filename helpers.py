@@ -8,6 +8,38 @@ import gc
 import os
 import re
 import shutil
+from functools import reduce
+
+def distancesFromVToAllMatrixElements(v, m):
+    return np.linalg.norm(m - v, axis=-1)
+
+def getNNearestToPoint(v, m, n):
+    """Return the n nearest points (distances, indexes in matrix(m))"""
+    index = list(range(m.shape[0]))
+    distances = distancesFromVToAllMatrixElements(v, m)
+    s = zip(*sorted(zip( distances, index ))) # sort according to distances
+    distances, index = zip(*sorted(zip( distances, index ))) # sort according to distances
+    return np.array(distances[:n]), np.array(index[:n])
+
+def getFromNearestInfo(v, X, qty, indexes, df_info, ordered_titles):
+    v = np.array(v)
+    distances, ix = getNNearestToPoint(v, X, qty)
+    return getDfInfo(X, indexes, ix, qty, df_info, ordered_titles)
+
+def getDfInfo(X, indexes, sub_indexes, qty, df_info, ordered_titles):
+    matched_indexes = indexes[ sub_indexes ]
+    matched_X = X[ sub_indexes ]
+    info = df_info.loc[ matched_indexes ]
+    info = info.iloc[ 0 : qty ]
+    for i, title in enumerate(ordered_titles):
+        info[ title ] = X[:qty, i]
+    return info
+
+def getObjOfRepresentativeness(r):
+    def repToObj(o, e):
+        o[e['group']] = e
+        return o
+    return reduce(repToObj, r, {})
 
 def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_titles):
     """
@@ -16,13 +48,7 @@ def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_tit
     qty is the number of rows wanted to be retrieved
     """
     matches = ( predicted == cluster )
-    matched_indexes = indexes[ matches ]
-    matched_X = X[ matches ]
-    info = df_info.loc[ matched_indexes ]
-    info = info.iloc[ 0 : qty ]
-    for i, title in enumerate(ordered_titles):
-        info[ title ] = X[:qty,i]
-    return info
+    return getDfInfo(X, indexes, matches, qty, df_info, ordered_titles)
 
 def fileAtPathExists(path):
     return os.path.isfile(path)
@@ -109,7 +135,7 @@ def getRepresentativeness(model, X, _Y):
         elif e['representativeness'] >= 0.15: tot['>15'] += 1
         elif e['representativeness'] >= 0.05: tot['>05'] += 1
         else : tot['<05'] += 1
-    print(tot)
+    print(f'totals: {tot}')
     return r
 
 ### A way to calculate the most meaningful groups
