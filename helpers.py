@@ -9,6 +9,7 @@ import os
 import re
 import shutil
 from functools import reduce
+import clustering as cl
 
 def distancesFromVToAllMatrixElements(v, m):
     return np.linalg.norm(m - v, axis=-1)
@@ -21,18 +22,19 @@ def getNNearestToPoint(v, m, n):
     distances, index = zip(*sorted(zip( distances, index ))) # sort according to distances
     return np.array(distances[:n]), np.array(index[:n])
 
-def getFromNearestInfo(v, X, qty, indexes, df_info, ordered_titles):
+def getFromNearestInfo(v, X, qty, indexes, df_info, ordered_titles, X_is_normalized=True, std=None):
     v = np.array(v)
     distances, ix = getNNearestToPoint(v, X, qty)
-    return getDfInfo(X, indexes, ix, qty, df_info, ordered_titles)
+    return getDfInfo(X, indexes, ix, qty, df_info, ordered_titles, X_is_normalized=X_is_normalized, std=std)
 
-def getDfInfo(X, indexes, sub_indexes, qty, df_info, ordered_titles):
+def getDfInfo(X, indexes, sub_indexes, qty, df_info, ordered_titles, X_is_normalized=True, std=None):
     matched_indexes = indexes[ sub_indexes ]
-    matched_X = X[ sub_indexes ]
+    X_to_use = X if X_is_normalized and not std else cl.getValuesBeforeNormalization(X, std)
+    matched_X = X_to_use[ sub_indexes ]
     info = df_info.loc[ matched_indexes ]
     info = info.iloc[ 0 : qty ]
     for i, title in enumerate(ordered_titles):
-        info[ title ] = X[:qty, i]
+        info[ title ] = matched_X[:qty, i]
     return info
 
 def getObjOfRepresentativeness(r):
@@ -41,14 +43,14 @@ def getObjOfRepresentativeness(r):
         return o
     return reduce(repToObj, r, {})
 
-def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_titles):
+def getFromClusterInfo(X, predicted, qty, indexes, cluster, df_info, ordered_titles, X_is_normalized=True, std=None):
     """
     Get some rows complete row, including its info
     X is the matrix
     qty is the number of rows wanted to be retrieved
     """
     matches = ( predicted == cluster )
-    return getDfInfo(X, indexes, matches, qty, df_info, ordered_titles)
+    return getDfInfo(X, indexes, matches, qty, df_info, ordered_titles, X_is_normalized=X_is_normalized, std=std)
 
 def fileAtPathExists(path):
     return os.path.isfile(path)
@@ -181,8 +183,8 @@ def getRandomRows(df, percent):
     indexes = np.arange(0, total, step=1, dtype=np.int32)
     np.random.shuffle(indexes)
     qty = math.floor( total * percent )
-    grabbed_indexes = indexes[0:qty]
-    newdf = df.iloc[grabbed_indexes, :]
-    del qty, indexes, total; gc.collect();
-    return newdf, grabbed_indexes
+    grabbed_indexes, ignored_indexes = indexes[0:qty], indexes[qty:total]
+    newdf, ignored_df = df.iloc[grabbed_indexes, :], df.iloc[ignored_indexes, :]
+    del qty, indexes, total; gc.collect()
+    return newdf, grabbed_indexes, ignored_df, ignored_indexes
 

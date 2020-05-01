@@ -216,8 +216,24 @@ def normalize(df):
 def normalizeV2(df):
     X = df.to_numpy()
     std = StandardScaler(copy=True)
-    X = std.fit(X).transform(X)
+    std = std.fit(X)
+    X = std.transform(X)
     return X, std
+
+def getValuesBeforeNormalization(X, std):
+    return std.inverse_transform(X)
+
+def predictNValuesFromDF(df, gmm, std, n=18):
+    s = df.sample(n=n)
+    indexes = s.index.values
+    s = s.to_numpy()
+    return gmm.predict(std.transform(s)), indexes
+
+def getNValuesFromDFAndAssignCluster(df, gmm, std, n=18):
+    pred, ix = predictNValuesFromDF(df, gmm, std, n=18)
+    subdf = df.loc[ix] 
+    subdf[ 'cluster' ] = pred
+    return subdf
 
 def runOutNormPCA(df_ALL, threshold = 20, UFAMP_limit = 1e+6, RRKLD_limit = 2e+6):
     df_nout = removeOutliers(df_ALL, threshold, UFAMP_limit, RRKLD_limit)
